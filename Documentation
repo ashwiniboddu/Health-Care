@@ -1,0 +1,58 @@
+Deployment of Health-Care Application
+
+# This project demonstrates deploying a Health-Care application using Jenkins, Docker, Github, SonarQube, Trivy, OWASP.
+
+Step-1: Launch Ubuntu instance with instance type as t2.large, AMI: 22.04, storage with 29 GB, No of instance to be launched: 1
+Step-2: Connect to the Instance
+Step-3: Switch to the root user
+sudo su
+Step-4: Update all the Default Packages
+apt update
+Step-5: Create a file with install.sh and paste the content which is there in the Repo install.sh file and save the changes.
+vi install.sh
+Step-6: Execute the install.sh file
+sh install.sh
+Step-7: Now we can see Java, Jenkins, Docker, SonarQube and Trivy has been installed.
+Step-8: Open the following Port Numbers in the Security Group which is associated with the Instance
+---> By default Jenkins will be running on the port number 8080
+---> By default SonarQube will be running on the port number 9000
+Step-9: Access the Jenkins and SonarQube
+---> Jenkins URL: <publicIP>:8080
+---> SonarQube URL: <publicIP>:9000
+Step-10: SteUp Jenkins
+---> The default password will be present in the below path
+cat /var/lib/jenkins/secrets/initialAdminPassword
+---> Change the Default Password
+---> Click on Install suggested plugins and we can see Jenkins Dashboard.
+Step-11: SetUp SonarQube 
+---> The default password of SonarQube is admin
+---> Change the password and setup the SonarQube Dashboard.
+Step-12: Install the Plugins which are necessary to build a Health-Care Project
+Go to the Manage Jenkins ---> Plugins ---> Available Plugins ---> Search for the Eclipse Temurin installer and select it ---> Search for the Pipeline Stage View and select it ---> Search for the SonarQube Scanner and select it ---> Search for the OWASP and select it ---> Search for the Docker plugins and select it ---> Click on the Install ---> Click on "Go back to the top of page".
+Step-13: Configure the Tools which are necessary for the Health-Care application
+Go to the Manage Jenkins ---> click on 'Tools' 
+---> select 'Add JDK'  ---> Name: java s/w ---> select on the install automatically ---> select Install from adoptium.net and select java-17.0.11+9 version
+---> Add SonarQube Scanner ---> Name: sonar-scanner ---> select Install automtically
+---> Add Maven ---> Name: maven s/w ---> select install automatically
+---> Add Dependency-Check installations ---> Name: DP-Check ---> select install automatically ---> select from github.com
+click on apply and save
+Step-14: Create a SonarQube Token
+---> Go to administration ---> Go to Security ---> select 'Users' ---> Click on the 3 dots and Name : token and 30 days expiration ---> copy the token 
+Step-15: Configure SonarQube Credentials in the Jenkins
+Go to manage Jenkins ---> Go to credentials ---> Click on 'global' ---> click on the 'Add Credentials' ---> Kind: Secret text ---> Secret: paste the copied sonarqube token ---> ID: Sonar-token ---> Description: Sonar-token ---> Click on create.
+Step-16: Create a Webhook for the Jenkins in the SonarQube Dashboard.
+Go to the SonarQube Dashboard ---> Click on 'Administraion' ---> click on configuration ---> click on 'webhook' ---> Create a webhook ---> Name: Jenkins : Url <publicIP>:8080/sonarqube-webhook/ ---> click on create.
+Step-17: Add the SonarQube Server in the Jenkins Dashboard
+Go to the Manage Jenkins ---> click on 'System' ---> Add SonarQube server ---> Name: sonar-server ---> URL <publicIP>:9000 ---> server authenctication token : click on add and select Sonar-token ---> click on Apply and Save.
+Step-18: Configure DOckerHub credentials in the Jenkins
+Go to Manage Jenkins ---> Go to Credentials ---> click on 'Global' ---> select add credentials ---> Kind : Username with Password ---> Username: bodduashwini ---> password: dockerhub password ---> ID: dockerhub-cred ---> Description: dockerhub-cred ---> click on create. 
+Step-19: Create Project. 
+Go the Jenkins Dashboard ---> click on 'New Item' ---> Enter the Project name as Health-Care ---> select Pipeline ---> click OK.
+1. Configure the pipeline script to build and deploy the application.
+2. Run the pipeline:
+---> Trigger the Jenkins pipeline to build and deploy the application.
+---> The Docker container will expose your application on port 8081.
+Step-13: Open the Port Number 8081 on Security Group which is attached to the instance.
+Step-14: Access the Application 
+---> <publicIP:8081>
+
