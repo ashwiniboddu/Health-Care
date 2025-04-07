@@ -1,0 +1,233 @@
+                                      📘 DevOps Project
+-----------------------------------------------------------------------------------------------------------------
+                                      HealthCare Application Deployment
+                                                       By Ashwini Boddu
+===============================================================================================================
+🧠 Note
+⚡️ All Terraform scripts and Kubernetes YAML files in this repository have been generated with the assistance of AI (ChatGPT,Grok), showcasing the integration of modern AI tools in real-world DevOps practices.
+===============================================================================================================
+🚀 Part I: Docker-Based Deployment
+--------------------------------------------------------------
+🛠️ Step 1: Infrastructure Setup using Terraform
+Directory Structure:
+
+1.1 Create a folder: terraform
+
+1.2 Inside it, create a subfolder: scripts
+
+1.3 Under scripts, create a folder: healthcare
+
+1.4 Inside healthcare, create shell scripts:
+
+1.4.1 awscli.sh
+
+1.4.2 docker.sh
+
+1.4.3 eksctl.sh
+
+1.4.4 jenkins.sh
+
+1.4.5 kubectl.sh
+
+1.4.6 trivy.sh
+
+1.5 Also, create another subfolder monitoring in scripts
+
+1.6 Inside monitoring, create docker.sh
+
+1.7 Terraform Configuration (main.tf):
+
+Set up:
+
+Key Pair
+
+Security Groups for EC2 instances
+
+EC2 Instances
+
+Elastic IPs
+
+Execution:
+
+1.8 Run terraform apply in VS Code to provision the infrastructure.
+
+After a few minutes, verify that the resources were successfully created in the AWS Console.
+
+1.9 Instance Access:
+SSH into the healthcare server.
+
+Verify that Jenkins, Docker, AWS CLI, Trivy, EKSCTL, and Kubectl are installed.
+
+Ensure that the SonarQube Docker container is running.
+
+SonarQube Setup:
+Access via: http://<public-ip>:9000
+Login using default credentials (admin/admin).
+Set a new password and create an access token.
+Configure webhook for Jenkins.
+
+Jenkins Setup:
+Access via: http://<public-ip>:8080
+
+Configure tools: JDK, Maven, Docker, SonarQube, OWASP.
+
+Install all required plugins (see list above).
+Eclipse Temurin Installer, SonarQube Scanner, Docker-related plugins, OWASP, Kubernetes, Prometheus Metrics, etc.
+
+Create credentials for DockerHub and SonarQube.
+
+Configure tools and system settings.
+
+=======================================================================================================
+☁️ Step 2: IAM & EKS Cluster Setup
+2.1 IAM User Configuration (For EKS Cluster Creation)
+Create a new IAM user (avoid using root account).
+
+Attach the following policies:
+
+AmazonEC2FullAccess, AmazonEKS_CNI_Policy, AmazonEKSClusterPolicy, AmazonEKSWorkerNodePolicy, AWSCloudFormationFullAccess, IAMFullAccess
+
+Add an inline policy to allow EKS actions.
+
+2.2 Create Access Keys
+2.3 EKS Cluster Creation
+
+aws configure
+
+Cluster Creation:
+eksctl create cluster --name=test-eks \
+                      --region=us-east-1 \
+                      --zones=us-east-1a,us-east-1b \
+                      --version=1.30 \
+                      --without-nodegroup
+
+Associate OIDC Provider:
+eksctl utils associate-iam-oidc-provider \
+    --region us-east-1 \
+    --cluster test-eks \
+    --approve
+
+Create Node Group:
+eksctl create nodegroup --cluster=test-eks \
+                       --region=us-east-1 \
+                       --name=node2 \
+                       --node-type=t2.medium \
+                       --nodes=3 \
+                       --nodes-min=2 \
+                       --nodes-max=4 \
+                       --node-volume-size=20 \
+                       --ssh-access \
+                       --ssh-public-key=test \
+                       --managed \
+                       --asg-access \
+                       --external-dns-access \
+                       --full-ecr-access \
+                       --appmesh-access \
+                       --alb-ingress-access
+🔐 Ensure security groups allow internal communication for control plane and worker nodes.
+
+===============================================================================================================
+📈 Step 3: Pipeline Job Creation
+Update the Jenkins pipeline script:
+
+Replace <DockerHubUsername> where needed.
+
+Access the application at:
+http://<public-ip>:8082
+
+===============================================================================================================☸️ Part II: Kubernetes & Monitoring
+===============================================================================================================
+📥 Before K8s Pipeline Execution
+
+Find Jenkins run user:
+ps aux | grep jenkins
+
+Switch user:
+sudo -su jenkins
+
+Configure AWS:
+aws configure
+
+Verify credentials:
+aws sts get-caller-identity
+
+Update kubeconfig:
+aws eks update-kubeconfig --name test-eks --region us-east-1
+
+🖥️ Monitoring Setup
+Step 1: Connect to Monitoring Server
+
+Step 2: Install Monitoring Tools
+2.1 Docker Verification
+Ensure Docker is already installed.
+
+2.2 Prometheus Setup
+docker run -d --name prometheus -p 9090:9090 --restart unless-stopped prom/prometheus
+
+Modify config:
+docker exec -it prometheus /bin/sh
+cd /etc/prometheus
+vi prometheus.yml
+
+Example configuration:
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['<MonitoringVMip>:9100']
+
+  - job_name: 'jenkins'
+    metrics_path: '/prometheus'
+    static_configs:
+      - targets: ['<jenkins-ip>:<jenkins-port>']
+
+Check config:
+promtool check config /etc/prometheus/prometheus.yml
+
+Restart container:
+docker restart prometheus
+
+Access Prometheus:
+http://<public-ip>:9090
+
+2.3 Node Exporter Setup
+docker run -d --name node-exporter -p 9100:9100 prom/node-exporter
+
+Access node-exporter:
+http://<public-ip>:9100
+
+2.4 Grafana Setup
+docker run -d --name grafana -p 3000:3000 --restart unless-stopped grafana/grafana
+
+Access Grafana: 
+http://<public-ip>:9090
+
+Default id and password is "admin"
+You can Set new password or you can click on "skip now".
+Click on "skip now" (If you want you can create the password)
+
+You will see the Grafana dashboard
+
+2.5 Adding Data Source in Grafana
+The first thing that we have to do in Grafana is to add the data source
+Add the data source;
+Select prometheus ---> In connection section provide Ip address of prometheus ---> click on save&test
+
+2.6 Adding Dashboards in Grafana 
+(URL: https://grafana.com/grafana/dashboards/1860-node-exporter-full/) 
+Lets add another dashboard for Jenkins;
+(URL: https://grafana.com/grafana/dashboards/9964-jenkins-performance-and-health-overview/)
+
+Click on Dashboards in the left pane, you can see both the dashboards you have just added.
+
+**********************************************************
+Step 3: Accessing the application
+As we mentioned the loadbalancer in the service.yml, the loadbalancer has created.
+Go to the EC2 dashboard and verify the loadbalancer 
+Access the application using loadbalacer dns
+  ad362fb0d80d741f9b69d3df615aabb2-2012474477.us-east-1.elb.amazonaws.com
+
+
+✅ Final Note
+This project combines Infrastructure as Code (IaC), CI/CD, Docker, Kubernetes, and Monitoring, showcasing real-world DevOps practices.
+Using AI tools like ChatGPT for generating Terraform and Kubernetes configurations helped streamline development, proving the power of integrating AI in DevOps workflows.
+
